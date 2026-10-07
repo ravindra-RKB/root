@@ -90,6 +90,10 @@ public:
    virtual bool Emit(const RLogEntry &entry) = 0;
 };
 
+namespace Internal {
+   ELogLevel GetEnvVerbosity(const std::string &channelName);
+}
+
 /**
  A log configuration for a channel, e.g. "RHist".
  Each ROOT module has its own log, with potentially distinct verbosity.
@@ -109,7 +113,9 @@ public:
    explicit RLogChannel(ELogLevel verbosity) : fVerbosity(verbosity) {}
 
    /// Construct a log channel given its name, which is part of the diagnostics.
-   RLogChannel(const std::string &name) : fName(name) {}
+   RLogChannel(const std::string &name) : fName(name) {
+      fVerbosity = ROOT::Internal::GetEnvVerbosity(name);
+   }
 
    ELogLevel SetVerbosity(ELogLevel verbosity)
    {

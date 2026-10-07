@@ -56,6 +56,51 @@ inline bool RLogHandlerDefault::Emit(const ROOT::RLogEntry &entry)
 }
 } // unnamed namespace
 
+#include <cstdlib>
+
+namespace ROOT {
+namespace Internal {
+
+ELogLevel GetEnvVerbosity(const std::string &channelName)
+{
+   if (channelName.empty())
+      return ELogLevel::kUnset;
+      
+   const char *env = std::getenv("ROOT_LOG");
+   if (!env)
+      return ELogLevel::kUnset;
+
+   std::string envStr(env);
+   std::string search = channelName + "=";
+   size_t pos = envStr.find(search);
+   while (pos != std::string::npos) {
+      if (pos == 0 || envStr[pos - 1] == ',') {
+         size_t valPos = pos + search.length();
+         size_t endPos = envStr.find(',', valPos);
+         std::string valStr = envStr.substr(valPos, endPos - valPos);
+         
+         if (valStr == "Fatal") return ELogLevel::kFatal;
+         if (valStr == "Error") return ELogLevel::kError;
+         if (valStr == "Warning") return ELogLevel::kWarning;
+         if (valStr == "Info") return ELogLevel::kInfo;
+         if (valStr.find("Debug") == 0) {
+            if (valStr.length() > 5 && valStr[5] == '(' && valStr.back() == ')') {
+               try {
+                  int level = std::stoi(valStr.substr(6, valStr.length() - 7));
+                  return ELogLevel::kDebug + level;
+               } catch (...) {}
+            }
+            return ELogLevel::kDebug;
+         }
+      }
+      pos = envStr.find(search, pos + 1);
+   }
+   return ELogLevel::kUnset;
+}
+
+} // namespace Internal
+} // namespace ROOT
+
 ROOT::RLogManager &ROOT::RLogManager::Get()
 {
    static RLogManager instance(std::make_unique<RLogHandlerDefault>());
